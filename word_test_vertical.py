@@ -349,46 +349,43 @@ def test():
                     category_i = top_i.cpu().numpy()
                     for i in range(0, len(output_prob[n])):
                         curr_candidate = corpus.dictionary.idx2word[category_i[i]]
-                        IsTitle = False
-                        if curr_candidate.istitle():
-                            curr_candidate = curr_candidate.lower()
-                            IsTitle = True
-                        
                         if len(target_asterisked) == len(curr_candidate):
+                            # pattern set to lowercase for case insensitivity
                             plausible_candidate = re.match(pattern, curr_candidate)
                             # check if candidate matches the asterisked pattern
                             if plausible_candidate:
-                                # print ("target_val, check : ", target_val, check)
-                                #TODO: wat??
-                                if target_asterisked[0].isupper():
-                                    curr_candidate = curr_candidate.replace(curr_candidate[0], curr_candidate[0].upper())
                                 curr_candidate_prob = output_prob[n].data[category_i[i]]
-                                
                                 if num == 0:
                                     num += 1
-                                    # stores top candidate word in result
-                                    result = curr_candidate.lower()
-                                    if target_asterisked != curr_candidate:
-                                        if curr_candidate.lower() == test_data_list[target].lower():
-                                            print ("#yes", target_asterisked, curr_candidate, test_data_list[target])
-                                            correct_count += 1
-                                            correct = True
-                                        else:
-                                            print ("no", target_asterisked, curr_candidate, test_data_list[target])
-                                        all_candidates[curr_candidate] = curr_candidate_prob
-                                        temp2.append(target_asterisked)
-
-                                # elif num >= 1 and num <= 4:
+                                    # test_data_list contains capitalized words
+                                    if curr_candidate.lower() == test_data_list[target].lower():
+                                        print ("#yes", target_asterisked, curr_candidate, test_data_list[target])
+                                        correct_count += 1
+                                        correct = True
+                                        # if case-insensitively matched, update candidate word with the target cases
+                                        curr_candidate = test_data_list[target]
+                                    else:
+                                        print ("#no", target_asterisked, curr_candidate, test_data_list[target])
+                                    all_candidates[curr_candidate] = curr_candidate_prob
+                                    temp2.append(target_asterisked)
                                 elif num >= 1:
                                     num += 1
-                                    if target_asterisked!=curr_candidate:
-                                        print ("#yes" + str(num), target_asterisked, curr_candidate, test_data_list[target])
+                                    if curr_candidate.lower() == test_data_list[target].lower():
+                                        print (str(num), target_asterisked, curr_candidate, test_data_list[target])
+                                        # update current candidate with correct cases even if it's not top candidate
+                                        curr_candidate = test_data_list[target]
+                                        if curr_candidate in all_candidates:
+                                            all_candidates[curr_candidate] += curr_candidate_prob
+                                        else:
+                                            all_candidates[curr_candidate] = curr_candidate_prob
+                                    else:
+                                        print (str(num), target_asterisked, curr_candidate, test_data_list[target])
                                         all_candidates[curr_candidate] = curr_candidate_prob
-                                # correct += 1
                                 pattern_matched = True
                 if not pattern_matched:
                     print ("not matched", target_asterisked)
                     temp2.append(target_asterisked)
+                    # if there isn't a pattern match, designate prediction as asterisked word and confidence as 0
                     all_candidates[target_asterisked] = 0
                     not_in_fixed_list_count += 1
                 # sort all_candidates by probability
