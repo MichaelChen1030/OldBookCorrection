@@ -63,7 +63,8 @@ tenth_word=""
 
 supp_counter=-1
 word_count=-1
-slash = input('\n Enter 1 if Mac/Others, 2 if Windows, if index error, use the other option:')
+# slash = input('\n Enter 1 if Mac/Others, 2 if Windows, if index error, use the other option:')
+slash = 2
 slash1=""
 if int(slash) ==1:
 	slash1="/"

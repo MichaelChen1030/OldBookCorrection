@@ -13,6 +13,7 @@ from xml.dom import minidom
 class MyThread (threading.Thread):
     def __init__(self, id, data, corpus):
         threading.Thread.__init__(self)
+        # store each document's ids
         self.id = id
         self.data = data
         self.corpus = corpus
@@ -20,6 +21,11 @@ class MyThread (threading.Thread):
         data_array = np.array([])
         for i in range(len(self.data) // 8 * self.id, min(len(self.data) // 8 * (self.id + 1), len(self.data))):
             data_array = np.append(data_array, self.corpus.dictionary.word2idx[self.data[i]])
+
+        if i % (len(self.data) // 50) == 0:
+            print("Thread {} at {:2.1f}%".format(self.id, 100 * (i - len(self.data) // 8 * self.id) /
+                  (min(len(self.data) // 8 * (self.id + 1), len(self.data)) - len(self.data) // 8 * self.id)))
+
         with open('word_data/data_array_{}'.format(self.id), 'wb') as handle:
             pickle.dump(data_array, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -41,6 +47,10 @@ class MyThread2 (threading.Thread):
                     data_array = np.append(data_array, self.corpus.rare_dictionary.word2idx[self.data[i]]) # added
                 else:
                     data_array = np.append(data_array, self.corpus.rare_dictionary.word2idx["<unk>"]) # added
+
+            if i % (len(self.data) // 50) == 0:
+                print("Thread {} at {:2.1f}%".format(self.id, 100 * (i - len(self.data) // 8 * self.id) /
+                      (min(len(self.data) // 8 * (self.id + 1), len(self.data)) - len(self.data) // 8 * self.id)))
 
         with open('word_data/rare_data_array_{}'.format(self.id), 'wb') as handle:
             pickle.dump(data_array, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -154,7 +164,7 @@ class Corpus(object):
                                           data_array_4, data_array_5, data_array_6, data_array_7])
         data_array = np.append(data_array, data_array_8)
         return data_array
-
+#pseudocorrection
     def generate_list_of_words(self, path):
         test_data_list = []
         ids = []
@@ -224,11 +234,6 @@ class Corpus(object):
         #                     self.test_dictionary.add_word(word)
         #                     ids.append([index, str(self.test_dictionary.word2idx[word])])
         #                     i += 1
-
-
-
-
-
 
                 # for word in words:
 

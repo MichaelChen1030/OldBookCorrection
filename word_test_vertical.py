@@ -66,16 +66,16 @@ print ("----- test_data_list -----")
 print (test_data_list)
 print (len(test_data_list))
 
-with open('word_data/dict_array2', 'rb') as handle:
+with open('word_data/dict_array', 'rb') as handle:
     corpus2 = pickle.load(handle)
 
 with open('freq_data/user_input', 'rb') as f:
-	year=pickle.load(f)
+    year=pickle.load(f)
 year1 = year[0]
 
 year_round=math.floor(int(year1)/10)
 with open('word_data/dict_array_'+str(year_round)+'1','rb') as f:
-	corpus=pickle.load(f)
+    corpus=pickle.load(f)
 
 n_categories = len(corpus.dictionary)
 n_letters = len(corpus.dictionary)
@@ -243,9 +243,9 @@ def test():
     start_time = time.time()
     progress_counter=0
 
-    # import unigram XML output
-    tree = ET.parse('freq_data/pseudo_correction.xml')
-    root = tree.getroot()
+    # # import unigram XML output
+    # tree = ET.parse('freq_data/pseudo_correction.xml')
+    # root = tree.getroot()
 
     for batch, i in enumerate(range(1, all_data.shape[1] - 1, args.bptt)):
         # returns Variables
@@ -314,7 +314,8 @@ def test():
                 # target_val = corpus.rare_dictionary.idx2word[target] 
                 # target_val = corpus2.test_dictionary.idx2word[target] # use this
                 # target_val is the target blackdot word
-                target_asterisked = corpus2.test_dictionary2[target][0]
+                print (target)
+                target_asterisked = corpus2.test_dictionary[target][0]
                 target_index = index_select[n]
                 print ("target : ", target, target_asterisked)
                 # print ("##", target_val)
@@ -349,80 +350,79 @@ def test():
                     category_i = top_i.cpu().numpy()
                     for i in range(0, len(output_prob[n])):
                         curr_candidate = corpus.dictionary.idx2word[category_i[i]]
-                        IsTitle = False
-                        if curr_candidate.istitle():
-                            curr_candidate = curr_candidate.lower()
-                            IsTitle = True
-                        
                         if len(target_asterisked) == len(curr_candidate):
+                            # pattern set to lowercase for case insensitivity
                             plausible_candidate = re.match(pattern, curr_candidate)
                             # check if candidate matches the asterisked pattern
                             if plausible_candidate:
-                                # print ("target_val, check : ", target_val, check)
-                                #TODO: wat??
-                                if target_asterisked[0].isupper():
-                                    curr_candidate = curr_candidate.replace(curr_candidate[0], curr_candidate[0].upper())
                                 curr_candidate_prob = output_prob[n].data[category_i[i]]
-                                
                                 if num == 0:
                                     num += 1
-                                    # stores top candidate word in result
-                                    result = curr_candidate.lower()
-                                    if target_asterisked != curr_candidate:
-                                        if curr_candidate.lower() == test_data_list[target].lower():
-                                            print ("#yes", target_asterisked, curr_candidate, test_data_list[target])
-                                            correct_count += 1
-                                            correct = True
-                                        else:
-                                            print ("no", target_asterisked, curr_candidate, test_data_list[target])
-                                        all_candidates[curr_candidate] = curr_candidate_prob
-                                        temp2.append(target_asterisked)
-
-                                # elif num >= 1 and num <= 4:
+                                    # test_data_list contains capitalized words
+                                    if curr_candidate.lower() == test_data_list[target].lower():
+                                        print ("#yes", target_asterisked, curr_candidate, test_data_list[target])
+                                        correct_count += 1
+                                        correct = True
+                                        # if case-insensitively matched, update candidate word with the target cases
+                                        curr_candidate = test_data_list[target]
+                                    else:
+                                        print ("#no", target_asterisked, curr_candidate, test_data_list[target])
+                                    all_candidates[curr_candidate] = curr_candidate_prob
+                                    temp2.append(target_asterisked)
                                 elif num >= 1:
                                     num += 1
-                                    if target_asterisked!=curr_candidate:
-                                        print ("#yes" + str(num), target_asterisked, curr_candidate, test_data_list[target])
+                                    if curr_candidate.lower() == test_data_list[target].lower():
+                                        print (str(num), target_asterisked, curr_candidate, test_data_list[target])
+                                        # update current candidate with correct cases even if it's not top candidate
+                                        curr_candidate = test_data_list[target]
+                                        if curr_candidate in all_candidates:
+                                            all_candidates[curr_candidate] += curr_candidate_prob
+                                        else:
+                                            all_candidates[curr_candidate] = curr_candidate_prob
+                                    else:
+                                        print (str(num), target_asterisked, curr_candidate, test_data_list[target])
                                         all_candidates[curr_candidate] = curr_candidate_prob
-                                # correct += 1
                                 pattern_matched = True
                 if not pattern_matched:
                     print ("not matched", target_asterisked)
                     temp2.append(target_asterisked)
+                    # if there isn't a pattern match, designate prediction as asterisked word and confidence as 0
                     all_candidates[target_asterisked] = 0
                     not_in_fixed_list_count += 1
                 # sort all_candidates by probability
                 sorted_candidates = sorted(all_candidates.items(), key=operator.itemgetter(1), reverse=True)
                 sum_conf = sum(x[1] for x in sorted_candidates)
 
-                # output candidates, candidate probabilities, correct
-                for word in root.iter("item"):
-                    if int(word.find("index").text) == target_index:
-                        item_lstm = ET.SubElement(word, "lstm")
-                        item_prediction = ET.SubElement(item_lstm, "prediction")
-                        item_prediction.text = sorted_candidates[0][0]
-                        item_correct = ET.SubElement(item_lstm, "correct")
-                        if correct:
-                            item_correct.text = "true"
-                        else:
-                            item_correct.text = "false"
-                        item_confidence = ET.SubElement(item_lstm, "confidence")
-                        if sum_conf > 0:
-                            item_confidence.text = str(sorted_candidates[0][1] / sum_conf)
-                            item_candidates = ET.SubElement(item_lstm, "candidates")
-                            for j in range(0, len(sorted_candidates)):
-                                item_candidate = ET.SubElement(item_candidates, "candidate")
-                                item_candidate_name = ET.SubElement(item_candidate, "name")
-                                item_candidate_name.text = sorted_candidates[j][0]
-                                item_candidate_conf = ET.SubElement(item_candidate, "conf")
-                                item_candidate_conf.text = str(sorted_candidates[j][1] / sum_conf)
-                        else:
-                            item_confidence.text = "0"
-                        break
-                    else:
-                        continue
+                # # output candidates, candidate probabilities, correct
+                # for word in root.iter("item"):
+                #     if int(word.find("index").text) == target_index:
+                #         item_lstm = ET.SubElement(word, "lstm")
+                #         item_prediction = ET.SubElement(item_lstm, "prediction")
+                #         item_prediction.text = sorted_candidates[0][0]
+                #         item_correct = ET.SubElement(item_lstm, "correct")
+                #         if correct:
+                #             item_correct.text = "true"
+                #         else:
+                #             item_correct.text = "false"
+                #         item_confidence = ET.SubElement(item_lstm, "confidence")
+                #         if sum_conf > 0:
+                #             item_confidence.text = str(sorted_candidates[0][1] / sum_conf)
+                #             item_candidates = ET.SubElement(item_lstm, "candidates")
+                #             for j in range(0, len(sorted_candidates)):
+                #                 item_candidate = ET.SubElement(item_candidates, "candidate")
+                #                 item_candidate_name = ET.SubElement(item_candidate, "name")
+                #                 item_candidate_name.text = sorted_candidates[j][0]
+                #                 item_candidate_conf = ET.SubElement(item_candidate, "conf")
+                #                 item_candidate_conf.text = str(sorted_candidates[j][1] / sum_conf)
+                #         else:
+                #             item_confidence.text = "0"
+                #         break
+                #     else:
+                #         continue
 
-                averages.append([target, all_candidates])
+                # averages.append([target, all_candidates])
+                averages.append(all_candidates)
+
                 total_count += 1
                 progress_counter+=1
                 # progress(progress_counter,total_counter,status="Word LSTM Progress:")
@@ -441,10 +441,10 @@ def test():
 
     # write to XML
 
-    xmlstr = '\n'.join([line for line in minidom.parseString(ET.tostring(root)).toprettyxml(indent="    ").split("\n") if line.strip()])
-    XML_output = "word_data/pseudo_correction.xml"
-    with open(XML_output, "w", newline='', encoding='UTF-8') as f:
-        f.write(xmlstr)
+    # xmlstr = '\n'.join([line for line in minidom.parseString(ET.tostring(root)).toprettyxml(indent="    ").split("\n") if line.strip()])
+    # XML_output = "word_data/pseudo_correction.xml"
+    # with open(XML_output, "w", newline='', encoding='UTF-8') as f:
+    #     f.write(xmlstr)
 
     return correct_count / total_count, high_correct / high_total, high_total / total_count
 
@@ -454,19 +454,19 @@ best_val_loss = None
 test_accuracy, high_accuracy, high_percentage = test()
 print ("test_accuracy = ", test_accuracy)
 
-# for i in range(0, len(temp1)):
-#     temp3[temp1[i]] = averages[i]
+for i in range(0, len(temp1)):
+    temp3[temp1[i]] = averages[i]
 
-# for k in sorted(temp3.keys()):
-#     temp4[k] = temp3[k]
+for k in sorted(temp3.keys()):
+    temp4[k] = temp3[k]
 
-# temp5 = []
-# for k in temp4:
-#     temp5.append(temp4[k])
+temp5 = []
+for k in temp4:
+    temp5.append(temp4[k])
 
-# dot_file=open('word_data/word_second_step_avgs', 'wb')
-# pickle.dump(temp5, dot_file)
-# dot_file.close()
+dot_file=open('word_data/word_second_step_avgs', 'wb')
+pickle.dump(temp5, dot_file)
+dot_file.close()
 
 print ("---------------------------")
 # average_dict = {}

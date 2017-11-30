@@ -169,7 +169,7 @@ class Corpus(object):
         index = 0
         num = 0
         ids = []
-
+        test_data_list = [] # added for real testing
         with open(path, 'r', encoding='UTF-8') as f:
             for line in f:
                 words = re.split("[,.:; ]", line)
@@ -179,9 +179,15 @@ class Corpus(object):
                     pattern = re.compile(r'●')
                     text_list = (pattern.findall(word))
                     if len(text_list) >= 1:
+                        test_data_list.append(word) # added for real testing
                         ids.append([index, str(num)])
                         self.test_dictionary.append([word, num])
                         num += 1
                     index += 1
+
+        # added for real testing
+        test_data2=open('word_data/test_data2', 'wb')
+        pickle.dump(test_data_list, test_data2)
+        test_data2.close()
 
         return ids

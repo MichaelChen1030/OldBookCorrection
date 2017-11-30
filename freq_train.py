@@ -22,13 +22,11 @@ def star_unique_file(input_filename, output_filename):
 	input_file = open(input_filename, 'r', newline='', encoding='UTF-8')
 	file_contents = input_file.read()
 	input_file.close()
-	countercheck=0
 	duplicates = []
 	word_list = file_contents.split()
 	file = open(output_filename, 'w', newline='', encoding='UTF-8')
 	for word in word_list:
 		if "●" in word:
-			countercheck+=1
 			file.write(str(word) + " ")
 	file.close()
 
@@ -41,7 +39,8 @@ with open('freq_data/test_words.txt', 'r', newline='', encoding='UTF-8') as myfi
 	data=myfile.read()
 	dot_words = data.split()
 total_counter=len(dot_words)
-year = input('Enter the year: ')
+# year = input('Enter the year: ')
+year = 1611
 if int(year) <= 1640:
 	with open('freq_data/hash_table_1600','rb') as f:
 		wlist1=pickle.load(f)
@@ -55,7 +54,7 @@ user_input=open('freq_data/user_input', 'wb')
 pickle.dump(li, user_input)
 user_input.close()
 
-def test_word_model(star_words, delta,wlist):
+def test_word_model(star_words, delta, wlist):
 	temp1=""
 	temp2=""
 	temp4=[]

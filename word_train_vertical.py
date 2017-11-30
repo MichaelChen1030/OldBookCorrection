@@ -18,17 +18,17 @@ import re
 #################################################
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank Character-Level LSTM Model')
-parser.add_argument('--nhid', type=int, default=128,
+parser.add_argument('--nhid', type=int, default=256,
                     help='number of hidden units per layer')
 parser.add_argument('--nlayers', type=int, default=2,
                     help='number of layers')
-parser.add_argument('--lr', type=float, default=3,
+parser.add_argument('--lr', type=float, default=20, # original : 3
                     help='initial learning rate')
 parser.add_argument('--clip', type=float, default=0.25,
                     help='gradient clipping')
 parser.add_argument('--load_epochs', type=int, default=0,
                     help='load epoch')
-parser.add_argument('--epochs', type=int, default=15,
+parser.add_argument('--epochs', type=int, default=20,
                     help='upper epoch limit')
 parser.add_argument('--batch_size', type=int, default=20, metavar='N',
                     help='batch size')
@@ -54,7 +54,7 @@ with open(path + '/dict_array', 'rb') as handle:
     corpus = pickle.load(handle)
 n_letters = len(corpus.dictionary)
 n_categories = len(corpus.dictionary)
-
+print (n_letters)
 temp1 = []
 temp2 = []
 temp3 = {}
@@ -107,22 +107,26 @@ def repackage_hidden(h):
 def get_batch(source, i, evaluation=False):
     seq_len = min(args.bptt, source.shape[1] - 1 - i)  # -1 so that there's data for the target of the last time step
     data = source[:, i: i + seq_len] 
+    # data2 = source[:, i + 1: i + 1 + seq_len] 
+    source_target = source.astype(np.int64)
+    target = source_target[:, i + 1: i + 1 + seq_len]
+
     # initialize train_data_tensor, test_data_tensor
     #data_tensor = torch.FloatTensor(data_array.shape[0], data_array.shape[1], n_letters).zero_()
     data_embedding = np.zeros((data.shape[0], data.shape[1], n_letters), dtype = np.float32)
+
+    # convert 2D numpy array to np.int64
+    
 
     # convert 2D numpy array to 3D numpy embedding
     for i in range(0, data.shape[0]):
         for j in range(0, data.shape[1]):
             data_embedding[i][j][data[i][j]] = 1
 
-    # convert 2D numpy array to np.int64
-    source_target = source.astype(np.int64)
-
     # create tensor variable
     data_embedding = torch.from_numpy(data_embedding)
     data_embedding = Variable(data_embedding, volatile=evaluation)    # Saves memory in purely inference mode
-    target = source_target[:, i + 1: i + 1 + seq_len]
+
     target = torch.from_numpy(target)
     target = Variable(target, volatile=evaluation)
     if args.bidirectional:
@@ -144,7 +148,6 @@ def embed(data_array, bsz):
     data_array = batchify(data_array, bsz)
 
     # initialize train_data_tensor, test_data_tensor
-    #data_tensor = torch.FloatTensor(data_array.shape[0], data_array.shape[1], n_letters).zero_()
     data_embedding = np.zeros((data_array.shape[0], data_array.shape[1], n_letters), dtype = np.float32)
 
     # convert 2D numpy array to np.int64
@@ -156,8 +159,6 @@ def embed(data_array, bsz):
             data_embedding[i][j][data_array[i][j]] = 1
 
     # convert 2D numpy array to 2D target tensor
-    # target_tensor = torch.LongTensor(data_array)
-
     return data_embedding, data_array
 
 def find_ge(a, x):
@@ -214,8 +215,8 @@ def train():
     for batch, i in enumerate(range(1, train_data.shape[1] - 1, args.bptt)):
         # returns Variables
         data, targets = get_batch(train_data, i)
-
-        if args.bidirectional:
+        
+        if not args.bidirectional:
             hidden = model.init_hidden(args.batch_size)
         else:
             hidden = repackage_hidden(hidden)
@@ -254,7 +255,7 @@ def evaluate():
         # returns Variables
         data, targets = get_batch(val_data, i)
 
-        if args.bidirectional:
+        if not args.bidirectional:
             hidden = model.init_hidden(val_bsz)
         else:
             hidden = repackage_hidden(hidden)
@@ -475,29 +476,28 @@ with open(path + '/{}_Epoch{}_BatchSize{}_Dropout{}_LR{}_HiddenDim{}.pt'.format(
 
 
 # Run on test data.
-test_accuracy, high_accuracy, high_percentage = test()
+# test_accuracy, high_accuracy, high_percentage = test()
 
-print('=' * 89)
-print(' test accuracy {:.2f} | high confidence accuracy {:.2f} '
-      '| high confidence percentage {:.2f} |'.format(
-    test_accuracy, high_accuracy, high_percentage))
-print('=' * 89)
+# print('=' * 89)
+# print(' test accuracy {:.2f} | high confidence accuracy {:.2f} '
+#       '| high confidence percentage {:.2f} |'.format(
+#     test_accuracy, high_accuracy, high_percentage))
+# print('=' * 89)
 
 
-for i in range(0, len(temp1)):
-    temp3[temp1[i]] = averages[i]
+# for i in range(0, len(temp1)):
+#     temp3[temp1[i]] = averages[i]
 
-for k in sorted(temp3.keys()):
-    temp4[k] = temp3[k]
+# for k in sorted(temp3.keys()):
+#     temp4[k] = temp3[k]
 
-temp5 = []
-for k in temp4:
-    temp5.append(temp4[k])
+# temp5 = []
+# for k in temp4:
+#     temp5.append(temp4[k])
 
-dot_file=open(path + '/word_second_step_avgs', 'wb')
-pickle.dump(temp5, dot_file)
-dot_file.close()
-
+# dot_file=open(path + '/word_second_step_avgs', 'wb')
+# pickle.dump(temp5, dot_file)
+# dot_file.close()
 # for i in range(0, len(temp1)):
 #     temp3[temp1[i]] = temp2[i]
 

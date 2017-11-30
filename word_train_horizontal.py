@@ -71,8 +71,7 @@ with open(path + '/train_data_array', 'rb') as handle:
 with open(path + '/val_data_array', 'rb') as handle:
     val_data_array = pickle.load(handle)
 
-all_data_array = np.append(train_data_array, val_data_array)
-train_data_array = all_data_array # added
+all_data_array = np.append(val_data_array, train_data_array)
 test_data.sort(key=lambda x: x[0], reverse=False)
 test_target_index = []
 test_target_tensor = torch.LongTensor(len(test_data)).zero_()
@@ -85,10 +84,14 @@ for i, char in enumerate(test_data):
 # Pre-process training and validation data
 ########################################################
 def batchify(data, bsz):
+    # Work out how cleanly we can divide the dataset into bsz parts.
     nbatch = data.size // bsz
+    # Trim off any extra elements that wouldn't cleanly fit (remainders).
     data = data[0: nbatch * bsz]
+    # Evenly divide the data across the bsz batches.
     data = data.reshape(bsz, -1)
     return data
+    
 
 # Wraps hidden states in new Variables, to detach them from their history.
 def repackage_hidden(h):
@@ -110,6 +113,10 @@ def get_batch(source, source_target, i, evaluation=False):
                             Variable(torch.from_numpy(r_source_target).cuda().contiguous().view(-1))), 0)
     else:
         target = Variable(source_target[:, i : i + 1 + seq_len].contiguous().view(-1))
+    print ("##### TEST #####")
+    print (data)
+    print ("#####")
+    print (target)    
     return data, target
 
 
@@ -184,7 +191,8 @@ def train():
         train_target_tensor = train_target_tensor.cuda()
 
         data, targets = get_batch(train_data_tensor, train_target_tensor, 0)
-
+        print (data)
+        print (targets)
         if not args.bidirectional:
             hidden = model.init_hidden(args.batch_size)
         else:
