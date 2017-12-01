@@ -124,7 +124,7 @@ def repackage_hidden(h):
 
 # for every batch you call this to get the batch of data and targets, in testing your only getting astericks for the characters you took out, 
 # you have the index but the data is turned into 3D array, you have to map indices that you have, 
-#you have to search for what astericks/how many are in the array, and then you go back using the indices of the astericks you already know
+# you have to search for what astericks/how many are in the array, and then you go back using the indices of the astericks you already know
 # to map that into indices of output array that you have 
 def get_batch(source, source_target, i, evaluation=False):
     seq_len = min(args.bptt, source.size(1) - i)  # -1 so that there's data for the target of the last time step
